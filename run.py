@@ -7,12 +7,18 @@ Sharpen 1 km land surface temperature to 10 m with three methods and check them 
             the same day. Adds the real-world gaps: two satellites, minutes apart, different angles and
             algorithms.
 
+Methods: resample, TsHARP, and the tree sharpener (DMS) with constant or with smooth residual
+correction (the same tree prediction, corrected two ways).
+
 Two scores at 100 m, on cells clear in every source:
     RMSE / bias         how far each 100 m value is from Landsat (deg C)
     detail r, detail RMSE   the same, but only for the pattern INSIDE each 1 km cell (each value minus
                         its 1 km cell's mean). This is what sharpening is supposed to add; a method that
                         only copies the 1 km value scores r = 0 here.
-Nothing can check the 10 m detail itself: Landsat's thermal band is 100 m.
+Nothing can check the 10 m detail itself: Landsat's thermal band is 100 m. At 10 m two more numbers:
+    edge ratio          jumps between neighbouring pixels across 1 km borders / jumps inside cells
+                        (about 1: no visible grid)
+    conservation error  mean gap between each 1 km measurement and the mean of its 10 m pixels
 
     python run.py 2026-03-27 2026-05-06 2026-05-14 2026-06-07 2026-06-23     # writes runs/
     python run.py --figures 2026-05-06                                         # redraw a figure only
@@ -29,7 +35,8 @@ import pandas as pd
 import rasterio
 
 import lst_data
-from sharpen import FACTOR, block_mean, dms, expand, features, resample, tsharp
+from sharpen import (FACTOR, block_mean, conservation_error, dms_raw, edge_ratio, expand, features, resample,
+                     residual_correct, tsharp)
 
 OUT = "runs"
 FIELDS = (74.302, 31.193)
@@ -60,18 +67,23 @@ def run_date(date):
     tests = {"A: Landsat averaged to 1 km": coarse_a, "B: real Sentinel-3": s3["lst"]}
     rows, keep = [], {}
     for test, coarse in tests.items():
-        for name, method in (("resample", None), ("TsHARP", tsharp), ("DMS trees", dms)):
-            if method is None:
+        raw, info_trees = dms_raw(coarse, feats, clear10)
+        for name in ("resample", "TsHARP", "DMS trees", "DMS trees, smooth"):
+            if name == "resample":
                 fine, info = np.where(clear10, resample(coarse), np.nan), {}
+            elif name == "TsHARP":
+                fine, info = tsharp(coarse, feats, clear10)
             else:
-                fine, info = method(coarse, feats, clear10)
+                fine = residual_correct(raw, coarse, smooth=name.endswith("smooth"))
+                info = info_trees
             p100, share = block_mean(fine, 10)
             ok = np.isfinite(truth) & np.isfinite(p100) & (share >= 0.5) & (s2_share >= 0.5) \
                 & np.isfinite(expand(coarse_a, 10)) & np.isfinite(expand(s3["lst"], 10))
-            rows.append({"date": date, "test": test, "method": name, **scores(p100, truth, ok)})
+            rows.append({"date": date, "test": test, "method": name, **scores(p100, truth, ok),
+                         "edge_ratio": edge_ratio(fine), "conservation_error": conservation_error(fine, coarse)})
             print({k: (round(v, 3) if isinstance(v, float) else v) for k, v in rows[-1].items()}, flush=True)
-            if name == "DMS trees":
-                keep[test] = (fine, info)
+            if name.startswith("DMS"):
+                keep[(test, name)] = (fine, info)
     # Sentinel-3 against Landsat at 1 km: how different are the two sensors before any sharpening?
     both = np.isfinite(coarse_a) & np.isfinite(s3["lst"])
     diff = (s3["lst"] - coarse_a)[both]
@@ -79,16 +91,17 @@ def run_date(date):
               "s3_minus_landsat_1km_rmse": float(np.sqrt((diff ** 2).mean())),
               "s3_landsat_1km_r": float(np.corrcoef(s3["lst"][both], coarse_a[both])[0, 1]),
               "cells_1km": int(both.sum()), "s3_time": str(s3["time"])[11:16], "landsat_time": str(ls["time"])[11:16],
-              "importance": json.dumps(keep["B: real Sentinel-3"][1].get("importance", {}))}
+              "importance": json.dumps(keep[("B: real Sentinel-3", "DMS trees")][1].get("importance", {}))}
     return rows, sensor, (s2, ls, s3, truth, keep)
 
 
 def figure(date, s2, ls, s3, truth, keep, write_tif=True):
     tr, _ = lst_data.grids()[10]
-    fine_b = keep["B: real Sentinel-3"][0]
+    fine_b = keep[("B: real Sentinel-3", "DMS trees, smooth")][0]
+    fine_c = keep.get(("B: real Sentinel-3", "DMS trees"), (None,))[0]
     rgb = np.stack([s2["refl"][2], s2["refl"][1], s2["refl"][0]], -1).astype("float32") / 3000
     lo, hi = np.nanpercentile(truth, [2, 98])
-    fig, ax = plt.subplots(2, 3, figsize=(15, 10.5), layout="constrained")
+    fig, ax = plt.subplots(2, 4, figsize=(19, 10), layout="constrained")
     rgb100 = np.stack([block_mean(rgb[..., k], 10)[0] for k in range(3)], -1)
     panels = [(rgb100.clip(0, 1), None, "Sentinel-2 true colour"),
               (s3["lst"], "inferno", "Sentinel-3 LST, 1 km (input)"),
@@ -105,12 +118,16 @@ def figure(date, s2, ls, s3, truth, keep, write_tif=True):
     col, row = ~tr * (x, y)
     r0, c0 = int(row) - 150, int(col) - 150
     z = (slice(r0, r0 + 300), slice(c0, c0 + 300))
-    ax[1, 1].imshow(rgb[z].clip(0, 1), interpolation="nearest")
-    ax[1, 1].set_title("crop_project fields, 3 x 3 km, true colour", fontsize=10)
+    ax[1, 0].imshow(rgb[z].clip(0, 1), interpolation="nearest")
+    ax[1, 0].set_title("crop_project fields, 3 x 3 km, true colour", fontsize=10)
+    if fine_c is not None:
+        ax[1, 1].imshow(fine_c[z], cmap="inferno", vmin=lo, vmax=hi, interpolation="nearest")
+        ax[1, 1].set_title("10 m, constant correction\n(1 km block edges)", fontsize=10)
     im = ax[1, 2].imshow(fine_b[z], cmap="inferno", vmin=lo, vmax=hi, interpolation="nearest")
-    ax[1, 2].set_title("Same 3 x 3 km, sharpened LST at 10 m\n(detail inferred, not measured)", fontsize=10)
-    for a in (ax[1, 1], ax[1, 2]):
+    ax[1, 2].set_title("10 m, smooth correction\n(detail inferred, not measured)", fontsize=10)
+    for a in ax[1]:
         a.set_xticks([]); a.set_yticks([])
+    ax[1, 3].axis("off")
     fig.colorbar(im, ax=ax, shrink=0.6, label="land surface temperature (deg C)")
     fig.suptitle(f"South of Lahore, {date}, 40 x 40 km", fontsize=13)
     fig.savefig(os.path.join(OUT, f"lst_{date}.png"), dpi=75)
@@ -131,7 +148,7 @@ def main():
             with rasterio.open(os.path.join(OUT, f"lst_10m_{date}.tif")) as src:
                 fine = src.read(1)
             figure(date, lst_data.sentinel2(date), ls, lst_data.sentinel3(date, ls["time"]),
-                   np.where(ls["clear"], ls["lst"], np.nan), {"B: real Sentinel-3": (fine, {})}, write_tif=False)
+                   np.where(ls["clear"], ls["lst"], np.nan), {("B: real Sentinel-3", "DMS trees, smooth"): (fine, {})}, write_tif=False)
         return
     rows, sensors = [], []
     for date in sys.argv[1:]:
@@ -142,7 +159,8 @@ def main():
         pd.DataFrame(rows).round(3).to_csv(os.path.join(OUT, "results.csv"), index=False)
         pd.DataFrame(sensors).round(3).to_csv(os.path.join(OUT, "sensors.csv"), index=False)
     res = pd.DataFrame(rows)
-    summary = res.groupby(["test", "method"])[["rmse", "bias", "detail_r", "detail_rmse"]].mean().round(2)
+    summary = res.groupby(["test", "method"])[["rmse", "bias", "detail_r", "detail_rmse", "edge_ratio",
+                                                "conservation_error"]].mean().round(2)
     summary.to_csv(os.path.join(OUT, "summary.csv"))
     print(summary.to_string())
     print(pd.DataFrame(sensors).drop(columns="importance").round(2).to_string(index=False))

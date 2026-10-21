@@ -10,6 +10,13 @@ reflectance at 10 m as the guide:
 tsharp and dms end with residual correction: inside every coarse cell the fine values are shifted
 so that their average is the measured coarse value again. The map gains detail but never disagrees
 with the measurement it started from.
+
+Two kinds of residual correction:
+    constant  one shift per coarse cell: exact, but neighbouring cells get different shifts, which
+              draws straight 1 km edges into the fine map
+    smooth    the shifts are treated as values at the cell centres and blended bilinearly, then the
+              small error this leaves in each cell's average is smoothed and added again, a few rounds,
+              until the map is both free of edges and (almost) exactly on the measurement
 """
 import numpy as np
 from scipy import ndimage
@@ -60,10 +67,36 @@ def resample(coarse, f=FACTOR):
     return out
 
 
-def residual_correct(fine, coarse, f=FACTOR):
-    """Shift the fine values in each coarse cell so that their mean equals the coarse value."""
+def residual_correct(fine, coarse, f=FACTOR, smooth=False, rounds=8):
+    """Shift the fine values in each coarse cell so that their mean equals the coarse value:
+    one constant per cell, or (smooth) bilinear shifts refined over a few rounds."""
+    if not smooth:
+        mean, _ = block_mean(fine, f)
+        return fine + expand(coarse - mean, f)
+    out = fine.copy()
+    for _ in range(rounds):
+        mean, _ = block_mean(out, f)
+        out = out + resample(coarse - mean, f)
+    return out
+
+
+def edge_ratio(fine, f=FACTOR):
+    """Mean temperature jump between neighbouring pixels across coarse-cell borders, divided by the
+    mean jump between neighbours inside cells. About 1: no visible grid. Above 1: the grid shows."""
+    across, inside = [], []
+    for d in (np.abs(np.diff(fine, axis=1)), np.abs(np.diff(fine, axis=0)).T):
+        border = (np.arange(d.shape[1]) % f) == f - 1          # pair (f-1, f) straddles a border
+        across.append(d[:, border])
+        inside.append(d[:, ~border])
+    a = np.nanmean(np.concatenate([x.ravel() for x in across]))
+    b = np.nanmean(np.concatenate([x.ravel() for x in inside]))
+    return float(a / b)
+
+
+def conservation_error(fine, coarse, f=FACTOR):
+    """Mean absolute gap between each coarse cell's measured value and the mean of its fine pixels."""
     mean, _ = block_mean(fine, f)
-    return fine + expand(coarse - mean, f)
+    return float(np.nanmean(np.abs(mean - coarse)))
 
 
 def _training_cells(coarse, feats, clear, f, keep):
@@ -86,7 +119,13 @@ def tsharp(coarse, feats, clear, f=FACTOR, keep=0.8):
     return residual_correct(fine, coarse, f), {"a": float(a), "b": float(b), "cells": int(use.sum())}
 
 
-def dms(coarse, feats, clear, f=FACTOR, keep=0.8, seed=0):
+def dms(coarse, feats, clear, f=FACTOR, keep=0.8, seed=0, smooth=False):
+    raw, info = dms_raw(coarse, feats, clear, f, keep, seed)
+    return residual_correct(raw, coarse, f, smooth=smooth), info
+
+
+def dms_raw(coarse, feats, clear, f=FACTOR, keep=0.8, seed=0):
+    """The trees' 10 m prediction before any residual correction."""
     use, cf = _training_cells(coarse, feats, clear, f, keep)
     model = RandomForestRegressor(n_estimators=60, min_samples_leaf=3, max_features=0.5, n_jobs=-1, random_state=seed)
     model.fit(cf[:, use].T, coarse[use])
@@ -100,4 +139,4 @@ def dms(coarse, feats, clear, f=FACTOR, keep=0.8, seed=0):
     fine = pred.reshape(clear.shape)
     imp = dict(zip(["B02", "B03", "B04", "B08", "B05", "B06", "B07", "B8A", "B11", "B12", "NDVI", "NDWI", "NDMI"],
                    np.round(model.feature_importances_, 3)))
-    return residual_correct(fine, coarse, f), {"cells": int(use.sum()), "importance": imp}
+    return fine, {"cells": int(use.sum()), "importance": imp}
