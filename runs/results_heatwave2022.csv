@@ -1,0 +1,9 @@
+date,test,method,rmse,bias,detail_r,detail_rmse,cells_100m,edge_ratio,conservation_error
+2022-05-27,A: Landsat averaged to 1 km,resample,2.115,0.003,0.267,2.063,156302,1.027,0.365
+2022-05-27,A: Landsat averaged to 1 km,TsHARP,2.154,0.0,0.741,2.154,156302,1.241,0.0
+2022-05-27,A: Landsat averaged to 1 km,DMS trees,1.348,0.0,0.806,1.348,156302,1.442,0.0
+2022-05-27,A: Landsat averaged to 1 km,"DMS trees, smooth",1.323,0.0,0.817,1.323,156302,1.031,0.006
+2022-05-27,B: real Sentinel-3,resample,2.727,-1.462,0.239,2.086,156302,1.028,0.175
+2022-05-27,B: real Sentinel-3,TsHARP,2.27,-1.46,0.741,1.499,156302,1.485,0.0
+2022-05-27,B: real Sentinel-3,DMS trees,2.156,-1.46,0.79,1.32,156302,1.598,0.0
+2022-05-27,B: real Sentinel-3,"DMS trees, smooth",2.162,-1.46,0.784,1.333,156302,1.024,0.008

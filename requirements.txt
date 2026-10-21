@@ -11,3 +11,4 @@ pyproj
 pystac-client
 planetary-computer
 requests
+shapely

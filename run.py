@@ -22,6 +22,7 @@ Nothing can check the 10 m detail itself: Landsat's thermal band is 100 m. At 10
 
     python run.py 2026-03-27 2026-05-06 2026-05-14 2026-06-07 2026-06-23     # writes runs/
     python run.py --figures 2026-05-06                                         # redraw a figure only
+    python run.py --tag heatwave2022 2022-05-27        # separate tables: runs/results_heatwave2022.csv ...
 """
 import json
 import os
@@ -150,18 +151,22 @@ def main():
             figure(date, lst_data.sentinel2(date), ls, lst_data.sentinel3(date, ls["time"]),
                    np.where(ls["clear"], ls["lst"], np.nan), {("B: real Sentinel-3", "DMS trees, smooth"): (fine, {})}, write_tif=False)
         return
+    args = sys.argv[1:]
+    tag = ""
+    if args[0] == "--tag":
+        tag, args = "_" + args[1], args[2:]
     rows, sensors = [], []
-    for date in sys.argv[1:]:
+    for date in args:
         r, s, extra = run_date(date)
         rows += r
         sensors.append(s)
         figure(date, *extra)
-        pd.DataFrame(rows).round(3).to_csv(os.path.join(OUT, "results.csv"), index=False)
-        pd.DataFrame(sensors).round(3).to_csv(os.path.join(OUT, "sensors.csv"), index=False)
+        pd.DataFrame(rows).round(3).to_csv(os.path.join(OUT, f"results{tag}.csv"), index=False)
+        pd.DataFrame(sensors).round(3).to_csv(os.path.join(OUT, f"sensors{tag}.csv"), index=False)
     res = pd.DataFrame(rows)
     summary = res.groupby(["test", "method"])[["rmse", "bias", "detail_r", "detail_rmse", "edge_ratio",
                                                 "conservation_error"]].mean().round(2)
-    summary.to_csv(os.path.join(OUT, "summary.csv"))
+    summary.to_csv(os.path.join(OUT, f"summary{tag}.csv"))
     print(summary.to_string())
     print(pd.DataFrame(sensors).drop(columns="importance").round(2).to_string(index=False))
 

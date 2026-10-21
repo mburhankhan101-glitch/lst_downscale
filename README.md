@@ -104,10 +104,45 @@ Mean over the five dates ([per date](runs/results.csv), [summary](runs/summary.c
 
 The 10 m maps are saved as GeoTIFFs in `runs/` (not in git: 30-60 MB each).
 
+## The 2022 heatwave: 27 May 2022
+
+```powershell
+python find_dates.py lahore 2022-03-20 2022-05-30       # rank days by how closely the satellites passed
+python lst_data.py 2022-05-27
+python run.py --tag heatwave2022 2022-05-27
+```
+
+Spring 2022 brought a long heatwave and dry spell to Pakistan. `find_dates.py` searched 20 March to
+30 May 2022 over Lahore and Islamabad for the days when Sentinel-3, Sentinel-2 and Landsat passed
+closest together ([Lahore](runs/dates_lahore_2022-03-20_2022-05-30.csv),
+[Islamabad](runs/dates_islamabad_2022-03-20_2022-05-30.csv)). The best by far: **27 May 2022 over
+Lahore**, with Sentinel-3B at 05:35, Sentinel-2A at 05:36 and Landsat 8 at 05:36 UTC, and all three
+100% clear over the area. Landsat measured a median ground temperature of 45 deg C, above 50 deg C on
+the hottest 2%. Islamabad had no comparable day: its only day with all three had Sentinel-3 32
+minutes off.
+
+| 27 May 2022 | Test A RMSE (deg C) | Test A detail r | Test B detail r | Test B detail RMSE (deg C) |
+|---|---|---|---|---|
+| resample | 2.12 | 0.27 | 0.24 | 2.09 |
+| TsHARP | 2.15 | 0.74 | 0.74 | 1.50 |
+| DMS trees, smooth | **1.32** | **0.82** | **0.78** | **1.33** |
+
+([results](runs/results_heatwave2022.csv), [summary](runs/summary_heatwave2022.csv))
+
+- The tree sharpener does at least as well as on the 2026 dates: it explains 82% (Test A) and 78% (Test
+  B) of the pattern inside each 1 km cell, and cuts the error of that pattern by 36% against resampling
+  on real Sentinel-3.
+- **Simultaneous passes do not remove the gap between the sensors.** One minute apart, Sentinel-3 was
+  still 1.5 deg C cooler than Landsat at 1 km ([sensors](runs/sensors_heatwave2022.csv)). So the time
+  between passes explains part of the offset seen in 2026, not all of it: the two sensors and their
+  temperature algorithms also differ, here by about 1.5 deg C on a very hot day.
+
+![27 May 2022](runs/lst_2022-05-27.png)
+
 ## Limitations
 
 - The 10 m detail is inferred from Sentinel-2, not measured; it is checked only at 100 m.
-- One area, five spring dates, one model per scene. 14 May and 23 June had partly cloudy Sentinel-2
+- One area, six dates (five in 2026, one in 2022), one model per scene. 14 May and 23 June had partly cloudy Sentinel-2
   images and are scored on a quarter of the area.
 - The time and angle offset between Sentinel-3 and Landsat is reported, not corrected.
 
