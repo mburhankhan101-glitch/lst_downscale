@@ -1,0 +1,13 @@
+numpy
+pandas
+matplotlib
+rasterio
+scikit-learn
+scipy
+xarray
+h5netcdf
+h5py
+pyproj
+pystac-client
+planetary-computer
+requests

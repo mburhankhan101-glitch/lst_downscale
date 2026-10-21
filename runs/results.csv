@@ -1,0 +1,31 @@
+date,test,method,rmse,bias,detail_r,detail_rmse,cells_100m
+2026-03-27,A: Landsat averaged to 1 km,resample,1.237,0.0,0.295,1.201,155455
+2026-03-27,A: Landsat averaged to 1 km,TsHARP,1.878,-0.001,0.697,1.878,155455
+2026-03-27,A: Landsat averaged to 1 km,DMS trees,1.061,-0.001,0.791,1.061,155455
+2026-03-27,B: real Sentinel-3,resample,1.653,0.74,0.23,1.224,155455
+2026-03-27,B: real Sentinel-3,TsHARP,1.56,0.739,0.697,1.12,155455
+2026-03-27,B: real Sentinel-3,DMS trees,1.338,0.739,0.782,0.781,155455
+2026-05-06,A: Landsat averaged to 1 km,resample,1.429,-0.001,0.296,1.387,155706
+2026-05-06,A: Landsat averaged to 1 km,TsHARP,1.565,0.0,0.726,1.565,155706
+2026-05-06,A: Landsat averaged to 1 km,DMS trees,1.163,0.0,0.771,1.163,155706
+2026-05-06,B: real Sentinel-3,resample,1.649,0.236,0.233,1.413,155706
+2026-05-06,B: real Sentinel-3,TsHARP,1.438,0.236,0.726,1.186,155706
+2026-05-06,B: real Sentinel-3,DMS trees,1.314,0.236,0.747,1.031,155706
+2026-05-14,A: Landsat averaged to 1 km,resample,2.422,-0.023,0.293,2.351,40387
+2026-05-14,A: Landsat averaged to 1 km,TsHARP,2.039,-0.015,0.671,2.026,40387
+2026-05-14,A: Landsat averaged to 1 km,DMS trees,1.738,-0.014,0.722,1.723,40387
+2026-05-14,B: real Sentinel-3,resample,4.246,-3.209,0.234,2.393,40387
+2026-05-14,B: real Sentinel-3,TsHARP,3.943,-3.212,0.671,1.845,40387
+2026-05-14,B: real Sentinel-3,DMS trees,3.918,-3.211,0.688,1.793,40387
+2026-06-07,A: Landsat averaged to 1 km,resample,2.453,0.003,0.273,2.395,156001
+2026-06-07,A: Landsat averaged to 1 km,TsHARP,2.448,-0.0,0.749,2.448,156001
+2026-06-07,A: Landsat averaged to 1 km,DMS trees,1.774,0.0,0.811,1.774,156001
+2026-06-07,B: real Sentinel-3,resample,3.893,-2.677,0.238,2.426,156001
+2026-06-07,B: real Sentinel-3,TsHARP,3.462,-2.679,0.749,1.699,156001
+2026-06-07,B: real Sentinel-3,DMS trees,3.374,-2.679,0.795,1.513,156001
+2026-06-23,A: Landsat averaged to 1 km,resample,1.732,0.009,0.338,1.674,39551
+2026-06-23,A: Landsat averaged to 1 km,TsHARP,1.651,-0.005,0.621,1.647,39551
+2026-06-23,A: Landsat averaged to 1 km,DMS trees,1.28,-0.005,0.733,1.275,39551
+2026-06-23,B: real Sentinel-3,resample,5.961,-5.513,0.181,1.742,39551
+2026-06-23,B: real Sentinel-3,TsHARP,5.873,-5.517,0.621,1.396,39551
+2026-06-23,B: real Sentinel-3,DMS trees,5.868,-5.517,0.656,1.376,39551
