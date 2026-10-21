@@ -139,10 +139,15 @@ minutes off.
 
 ![27 May 2022](runs/lst_2022-05-27.png)
 
-**Before and after**, on one locked colour scale (35-48 deg C in all four panels, so neither map is
-stretched to look better; `python figures.py before-after 2022-05-27`): Sentinel-3 as measured, where
-one 1 km pixel covers dozens of fields, and the sharpened 10 m map, where single irrigated fields
-show up 6-8 deg C cooler than the bare, harvested land around them.
+**Before and after, and is the detail real?** Sentinel-3 as measured (1 km), the downscaled map (10 m),
+Landsat's own thermal measurement (100 m) and the Sentinel-2 image of the same morning, over the whole
+area (74.09-74.51 E, 31.01-31.37 N) and a 5 x 5 km zoom; the temperature panels share one locked
+35-48 deg C scale, so none is stretched to look better (`python figures.py before-after 2022-05-27`).
+The downscaled map is not generative AI: every 10 m value is predicted from that pixel's own
+Sentinel-2 reflectance by trees fitted on this one scene, then tied back to the 1 km measurement. Two
+independent checks agree with it in the zoom: the cool patches in the 10 m map are also cool in
+Landsat's measurement (blurred at 100 m), and they are dark green, irrigated fields in the Sentinel-2
+image. Landsat reads warmer overall, the 1.5 deg C sensor gap described above.
 
 ![Before and after downscaling, 27 May 2022](runs/before_after_2022-05-27.png)
 

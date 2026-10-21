@@ -4,9 +4,11 @@ Figures for the README.
     python figures.py 2026-05-06                    # runs/correction_explained.png (a few minutes)
     python figures.py before-after 2022-05-27       # runs/before_after_2022-05-27.png (needs run.py first)
 
-Before / after: Sentinel-3 as measured (1 km) next to the sharpened map (10 m, smooth correction),
-over the whole area and zoomed to 5 x 5 km around the crop_project fields. All four panels share
-one locked colour scale, so the two maps are compared on equal terms.
+Before / after: Sentinel-3 as measured (1 km), the sharpened map (10 m, smooth correction), Landsat's
+measured thermal band (100 m) and the Sentinel-2 true-colour image of the same morning, over the whole
+area and zoomed to 5 x 5 km around the crop_project fields, with longitudes and latitudes. The three
+temperature columns share one locked colour scale, so they are compared on equal terms; Landsat and
+the true-colour image show whether the 10 m detail matches something real.
 
 Constant vs smooth correction:
 Top left: the idea with made-up numbers (two 1 km cells, measured 36 and 33 deg C, a model that says
@@ -105,11 +107,16 @@ def real(date, axes):
 
 
 def before_after(date, fields=(74.302, 31.193), zoom_km=5):
+    """Before (Sentinel-3, 1 km) | after (10 m) | Landsat thermal (100 m, measured) | Sentinel-2 true colour,
+    for the whole area and a zoom. The three temperature columns share one locked colour scale."""
     ls = lst_data.landsat(date)
     s3 = lst_data.sentinel3(date, ls["time"])
+    s2 = lst_data.sentinel2(date)
     with rasterio.open(os.path.join(OUT, f"lst_10m_{date}.tif")) as src:
         after = src.read(1)
     before = expand(s3["lst"], FACTOR)                   # each 1 km cell drawn as what it is: one value
+    landsat = expand(np.where(ls["clear"], ls["lst"], np.nan), 10)
+    rgb = (np.stack([s2["refl"][2], s2["refl"][1], s2["refl"][0]], -1).astype("float32") / 3000).clip(0, 1)
     sample = np.r_[before[::20, ::20].ravel(), after[::20, ::20].ravel()]
     lo, hi = np.floor(np.nanpercentile(sample, 1)), np.ceil(np.nanpercentile(sample, 99))
     tr, _ = lst_data.grids()[10]
@@ -118,25 +125,38 @@ def before_after(date, fields=(74.302, 31.193), zoom_km=5):
     half = zoom_km * 50                                   # half the zoom window, in 10 m pixels
     r0, c0 = int(row) - half, int(col) - half
     z = (slice(r0, r0 + 2 * half), slice(c0, c0 + 2 * half))
-    fig, ax = plt.subplots(2, 2, figsize=(13, 13), layout="constrained")
+    w, south, e, north = lst_data.bbox_lonlat()
+    to_ll = Transformer.from_crs(lst_data.CRS, "EPSG:4326", always_xy=True).transform
+    zx0, zy1 = tr * (c0, r0)
+    zx1, zy0 = tr * (c0 + 2 * half, r0 + 2 * half)
+    zw, zs = to_ll(zx0, zy0)
+    ze, zn = to_ll(zx1, zy1)
+    fig, ax = plt.subplots(2, 4, figsize=(24, 13.2), layout="constrained")
     kw = dict(cmap="inferno", vmin=lo, vmax=hi, interpolation="nearest")
-    for a, img, title in ((ax[0, 0], before, "Before: Sentinel-3 LST as measured (1 km pixels)"),
-                          (ax[0, 1], after, "After: downscaled to 10 m (trees, smooth correction)")):
-        a.imshow(img[::2, ::2], extent=(0, 40, 0, 40), **kw)
-        a.add_patch(plt.Rectangle((c0 / 100, 40 - (r0 + 2 * half) / 100), zoom_km, zoom_km,
-                                  fill=False, edgecolor="cyan", lw=1.5))
-        a.set_title(title, fontsize=11)
-        a.set_xlabel("km"); a.set_ylabel("km")
-    for a, img, title in ((ax[1, 0], before, f"Before, zoom {zoom_km} x {zoom_km} km (cyan box)"),
-                          (ax[1, 1], after, f"After, zoom {zoom_km} x {zoom_km} km (cyan box)")):
-        im = a.imshow(img[z], extent=(0, zoom_km, 0, zoom_km), **kw)
-        a.set_title(title, fontsize=11)
-        a.set_xlabel("km"); a.set_ylabel("km")
-    fig.colorbar(im, ax=ax, shrink=0.5, label=f"land surface temperature (deg C), the same {lo:.0f}-{hi:.0f} "
-                                               f"scale in all four panels")
-    fig.suptitle(f"Land surface temperature south of Lahore, {date}: before and after downscaling", fontsize=13)
+    columns = [(before, "Before: Sentinel-3 LST, 1 km (measured)"),
+               (after, "After: downscaled to 10 m"),
+               (landsat, "Landsat 8 LST, 100 m (measured, the check)"),
+               (rgb, "Sentinel-2 true colour, 10 m (same morning)")]
+    for k, (img, title) in enumerate(columns):
+        thermal = img.ndim == 2
+        top = ax[0, k].imshow(img[::2, ::2], extent=(0, 40, 0, 40), **(kw if thermal else {}))
+        ax[0, k].add_patch(plt.Rectangle((c0 / 100, 40 - (r0 + 2 * half) / 100), zoom_km, zoom_km,
+                                         fill=False, edgecolor="cyan", lw=1.5))
+        ax[0, k].set_title(f"{title}\nwhole area: 40 x 40 km", fontsize=11)
+        ax[0, k].set_xlabel(f"km  ({w:.2f} to {e:.2f} E)")
+        ax[0, k].set_ylabel(f"km  ({south:.2f} to {north:.2f} N)")
+        bottom = ax[1, k].imshow(img[z], extent=(0, zoom_km, 0, zoom_km), **(kw if thermal else {}))
+        ax[1, k].set_title(f"zoom {zoom_km} x {zoom_km} km (cyan box)", fontsize=11)
+        ax[1, k].set_xlabel(f"km  ({zw:.3f} to {ze:.3f} E)")
+        ax[1, k].set_ylabel(f"km  ({zs:.3f} to {zn:.3f} N)")
+        if thermal:
+            im = bottom
+    fig.colorbar(im, ax=ax[:, :3], shrink=0.6, location="bottom",
+                 label=f"land surface temperature (deg C), the same {lo:.0f}-{hi:.0f} scale in all temperature panels")
+    fig.suptitle(f"South of Lahore, {date}: Sentinel-3 before and after downscaling, checked against Landsat "
+                 f"thermal and the Sentinel-2 image", fontsize=14)
     out = os.path.join(OUT, f"before_after_{date}.png")
-    fig.savefig(out, dpi=90)
+    fig.savefig(out, dpi=80)
     print(f"Saved {out} (colour scale locked to {lo:.0f}-{hi:.0f} deg C)")
 
 
