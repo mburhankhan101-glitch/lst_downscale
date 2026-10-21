@@ -3,8 +3,7 @@
 Land surface temperature (LST) from Sentinel-3 is measured on 1 km pixels, too coarse to see a single
 field. This project sharpens it to 10 m with Sentinel-2 as the guide, and checks how much of the added
 detail is real against Landsat's 100 m thermal band. Study area: 40 x 40 km south of Lahore, around
-the fields of [crop_project](https://github.com/mburhankhan101-glitch/crop_project). A challenge
-suggested by Dr. Ahmad Ali Gul (Center for Disaster Management, UMT).
+the fields of [crop_project](https://github.com/mburhankhan101-glitch/crop_project). 
 
 ```powershell
 python lst_data.py 2026-03-27 2026-05-06 2026-05-14 2026-06-07 2026-06-23   # download and cache
