@@ -76,6 +76,17 @@ Mean over the five dates ([per date](runs/results.csv), [summary](runs/summary.c
   to 1.03, the same as the real landscape, while each 1 km mean stays within 0.01 deg C of the
   measurement. The 100 m scores barely move (1.40 to 1.37 deg C in Test A, 1.30 to 1.32 in Test B):
   the change is to how the 10 m map looks, not to its accuracy. Smooth is now the default for the maps.
+
+  ![Constant vs smooth residual correction](runs/correction_explained.png)
+
+  Top left, the idea: a 1 km cell measured at 36 deg C next to one at 33 deg C, and a model that says
+  34 in both. Constant correction shifts every pixel of a cell by the same amount (+2, then -1), so two
+  pixels 10 m apart end up 3 deg C apart at the border: a cliff. Smooth correction blends the shift
+  from one cell centre to the next: a ramp. Bottom, the same on real data (6 May), at the border where
+  the two corrections differ most (`python figures.py 2026-05-06`): with constant correction the 10 m
+  map changes abruptly on the dashed 1 km line, and the column averages drop by 3.5 deg C right at the
+  border; with smooth correction they don't. Top right, the edge ratio: how much bigger the jumps
+  between neighbouring pixels are across 1 km borders than inside cells (1.0 = no seams).
 - **TsHARP finds the pattern (r 0.69) but overshoots it**: in Test A its error (1.92) is no better than
   doing nothing (1.85). One NDVI line exaggerates the contrast between green and bare fields.
 - **Moisture matters more than greenness.** In the trees, the shortwave infrared band B12 and the
