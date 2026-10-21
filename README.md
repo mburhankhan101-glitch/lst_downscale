@@ -139,6 +139,13 @@ minutes off.
 
 ![27 May 2022](runs/lst_2022-05-27.png)
 
+**Before and after**, on one locked colour scale (35-48 deg C in all four panels, so neither map is
+stretched to look better; `python figures.py before-after 2022-05-27`): Sentinel-3 as measured, where
+one 1 km pixel covers dozens of fields, and the sharpened 10 m map, where single irrigated fields
+show up 6-8 deg C cooler than the bare, harvested land around them.
+
+![Before and after downscaling, 27 May 2022](runs/before_after_2022-05-27.png)
+
 ## Limitations
 
 - The 10 m detail is inferred from Sentinel-2, not measured; it is checked only at 100 m.

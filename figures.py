@@ -1,8 +1,14 @@
 """
-A figure that explains constant vs smooth residual correction, for the README.
+Figures for the README.
 
-    python figures.py 2026-05-06        # writes runs/correction_explained.png (a few minutes)
+    python figures.py 2026-05-06                    # runs/correction_explained.png (a few minutes)
+    python figures.py before-after 2022-05-27       # runs/before_after_2022-05-27.png (needs run.py first)
 
+Before / after: Sentinel-3 as measured (1 km) next to the sharpened map (10 m, smooth correction),
+over the whole area and zoomed to 5 x 5 km around the crop_project fields. All four panels share
+one locked colour scale, so the two maps are compared on equal terms.
+
+Constant vs smooth correction:
 Top left: the idea with made-up numbers (two 1 km cells, measured 36 and 33 deg C, a model that says
 34 in both). Top right: the edge ratio of both corrections, from runs/summary.csv. Bottom: real data
 from one date, at the 1 km border in the study area where the two corrections differ most: the 10 m
@@ -16,9 +22,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import rasterio
+from pyproj import Transformer
 
 import lst_data
-from sharpen import FACTOR, block_mean, dms_raw, features, residual_correct
+from sharpen import FACTOR, block_mean, dms_raw, expand, features, residual_correct
 
 OUT = "runs"
 
@@ -96,7 +104,46 @@ def real(date, axes):
     axes[2].legend(fontsize=8)
 
 
+def before_after(date, fields=(74.302, 31.193), zoom_km=5):
+    ls = lst_data.landsat(date)
+    s3 = lst_data.sentinel3(date, ls["time"])
+    with rasterio.open(os.path.join(OUT, f"lst_10m_{date}.tif")) as src:
+        after = src.read(1)
+    before = expand(s3["lst"], FACTOR)                   # each 1 km cell drawn as what it is: one value
+    sample = np.r_[before[::20, ::20].ravel(), after[::20, ::20].ravel()]
+    lo, hi = np.floor(np.nanpercentile(sample, 1)), np.ceil(np.nanpercentile(sample, 99))
+    tr, _ = lst_data.grids()[10]
+    x, y = Transformer.from_crs("EPSG:4326", lst_data.CRS, always_xy=True).transform(*fields)
+    col, row = ~tr * (x, y)
+    half = zoom_km * 50                                   # half the zoom window, in 10 m pixels
+    r0, c0 = int(row) - half, int(col) - half
+    z = (slice(r0, r0 + 2 * half), slice(c0, c0 + 2 * half))
+    fig, ax = plt.subplots(2, 2, figsize=(13, 13), layout="constrained")
+    kw = dict(cmap="inferno", vmin=lo, vmax=hi, interpolation="nearest")
+    for a, img, title in ((ax[0, 0], before, "Before: Sentinel-3 LST as measured (1 km pixels)"),
+                          (ax[0, 1], after, "After: downscaled to 10 m (trees, smooth correction)")):
+        a.imshow(img[::2, ::2], extent=(0, 40, 0, 40), **kw)
+        a.add_patch(plt.Rectangle((c0 / 100, 40 - (r0 + 2 * half) / 100), zoom_km, zoom_km,
+                                  fill=False, edgecolor="cyan", lw=1.5))
+        a.set_title(title, fontsize=11)
+        a.set_xlabel("km"); a.set_ylabel("km")
+    for a, img, title in ((ax[1, 0], before, f"Before, zoom {zoom_km} x {zoom_km} km (cyan box)"),
+                          (ax[1, 1], after, f"After, zoom {zoom_km} x {zoom_km} km (cyan box)")):
+        im = a.imshow(img[z], extent=(0, zoom_km, 0, zoom_km), **kw)
+        a.set_title(title, fontsize=11)
+        a.set_xlabel("km"); a.set_ylabel("km")
+    fig.colorbar(im, ax=ax, shrink=0.5, label=f"land surface temperature (deg C), the same {lo:.0f}-{hi:.0f} "
+                                               f"scale in all four panels")
+    fig.suptitle(f"Land surface temperature south of Lahore, {date}: before and after downscaling", fontsize=13)
+    out = os.path.join(OUT, f"before_after_{date}.png")
+    fig.savefig(out, dpi=90)
+    print(f"Saved {out} (colour scale locked to {lo:.0f}-{hi:.0f} deg C)")
+
+
 def main():
+    if len(sys.argv) > 2 and sys.argv[1] == "before-after":
+        before_after(sys.argv[2])
+        return
     date = sys.argv[1] if len(sys.argv) > 1 else "2026-05-06"
     fig = plt.figure(figsize=(15, 9.5), layout="constrained")
     grid = fig.add_gridspec(2, 3)
