@@ -102,12 +102,12 @@ def conservation_error(fine, coarse, f=FACTOR):
 def _training_cells(coarse, feats, clear, f, keep):
     """Coarse cells to learn from: measured, at least 90% clear in Sentinel-2, and among the `keep`
     share that is most uniform inside (lowest spread of NDVI), so each cell's average is meaningful."""
-    fine = np.where(clear, feats, np.nan)
-    cf, share = block_mean(fine, f)
-    ndvi = fine[10]
+    cf = np.stack([block_mean(np.where(clear, feats[k], np.nan), f)[0] for k in range(len(feats))])  # band by band
+    share = block_mean(np.where(clear, 1.0, np.nan), f)[1]
+    ndvi = np.where(clear, feats[10], np.nan)
     h, w = coarse.shape
     spread = np.nanstd(ndvi[:h * f, :w * f].reshape(h, f, w, f), axis=(1, 3))
-    ok = np.isfinite(coarse) & (share[0] >= 0.9) & np.isfinite(cf).all(0)
+    ok = np.isfinite(coarse) & (share >= 0.9) & np.isfinite(cf).all(0)
     cut = np.quantile(spread[ok], keep) if ok.any() else 0
     return ok & (spread <= cut), cf
 

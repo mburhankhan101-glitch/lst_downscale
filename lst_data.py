@@ -8,13 +8,19 @@ The inputs for one date over the study area, on three aligned grids (UTM zone 43
            longitude) placed on 1 km cells; cloudy pixels and flagged pixels left out. Clouds come from
            the basic cloud tests (cloud_in); the Bayesian cloud flag marked 85% of a clear May day as
            cloudy over hot, bright ground, so it is not used, and the clear-sky masks of Landsat and
-           Sentinel-2 are applied as well
+           Sentinel-2 are applied as well. The "visible" test alone (very bright reflectance) flagged a
+           quarter of central Lahore on a clear day, pixels as hot as their neighbours: bright roofs,
+           not clouds. A pixel flagged only by that test counts as cloud only if it is also at least
+           8 K colder than the median of the area, as a real cloud top would be
 
-The study area is a 40 x 40 km square around the crop_project fields south of Lahore (74.30 E,
-31.19 N), its corners on whole kilometres so that 100 cells of 10 m make exactly one 1 km cell.
-Everything comes from Microsoft Planetary Computer and is cached in cache/.
+Areas (set_area): "south", a 40 x 40 km square around the crop_project fields south of Lahore
+(74.30 E, 31.19 N), the default; and "lahore", the rectangle around Lahore district (its boundary
+in data/lahore_district.geojson, from geoBoundaries). Corners sit on whole kilometres so that 100
+cells of 10 m make exactly one 1 km cell. Everything comes from Microsoft Planetary Computer and is
+cached in cache/ (files of areas other than "south" carry the area's name).
 
-    python lst_data.py 2026-05-06       # download and cache one date, print what was found
+    python lst_data.py 2026-05-06                   # download and cache one date, print what was found
+    python lst_data.py --area lahore 2022-05-27
 """
 import os
 import sys
@@ -34,20 +40,47 @@ from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 
 CRS = "EPSG:32643"
-CENTRE = (74.302, 31.193)                     # the crop_project fields
-SIZE = 40_000                                 # metres
+AREAS = {
+    "south": {"centre": (74.302, 31.193), "size": 40_000,            # the crop_project fields
+              "zoom": (74.302, 31.193), "zoom_name": "crop_project fields"},
+    "lahore": {"lonlat": (74.007, 31.254, 74.655, 31.713),           # Lahore City + Lahore Cantt tehsils
+               "zoom": (74.3047, 31.5790), "zoom_name": "Data Darbar"},
+}
+AREA = "south"
+
+
+def set_area(name):
+    global AREA
+    AREA = name
+
+
+def _tag(name):
+    """Cache file name; the default area keeps the original names."""
+    return name if AREA == "south" else f"{AREA}_{name}"
 CACHE = "cache"
 S2_BANDS = ["B02", "B03", "B04", "B08", "B05", "B06", "B07", "B8A", "B11", "B12"]
 CLEAR_SCL = (4, 5, 6, 7)                      # vegetation, bare soil, water, unclassified
 STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
 
 
+def extent_m():
+    """x0, top, width, height of the area in metres (UTM 43N), corners on whole kilometres."""
+    a = AREAS[AREA]
+    to_utm = Transformer.from_crs("EPSG:4326", CRS, always_xy=True).transform
+    if "centre" in a:
+        x, y = to_utm(*a["centre"])
+        return np.floor((x - a["size"] / 2) / 1000) * 1000, np.floor((y + a["size"] / 2) / 1000) * 1000, a["size"], a["size"]
+    w, s_, e, n = a["lonlat"]
+    xs, ys = zip(*(to_utm(x, y) for x in (w, e) for y in (s_, n)))
+    x0, x1 = np.floor(min(xs) / 1000) * 1000, np.ceil(max(xs) / 1000) * 1000
+    y0, top = np.floor(min(ys) / 1000) * 1000, np.ceil(max(ys) / 1000) * 1000
+    return x0, top, int(x1 - x0), int(top - y0)
+
+
 def grids():
-    """(x0, y_top) of the square and the transforms of the 10 m, 100 m and 1 km grids."""
-    x, y = Transformer.from_crs("EPSG:4326", CRS, always_xy=True).transform(*CENTRE)
-    x0 = np.floor((x - SIZE / 2) / 1000) * 1000
-    top = np.floor((y + SIZE / 2) / 1000) * 1000
-    return {res: (from_origin(x0, top, res, res), (SIZE // res, SIZE // res)) for res in (10, 100, 1000)}
+    """The transforms and shapes of the 10 m, 100 m and 1 km grids of the current area."""
+    x0, top, width, height = extent_m()
+    return {res: (from_origin(x0, top, res, res), (height // res, width // res)) for res in (10, 100, 1000)}
 
 
 def bbox_lonlat():
@@ -112,7 +145,7 @@ def sentinel2(date):
             scl[take] = s[take]
             used.append(item.id)
         return {"refl": refl, "clear": np.isin(scl, CLEAR_SCL), "items": np.array(used)}
-    return _cached(f"s2_{date}.npz", make)
+    return _cached(_tag(f"s2_{date}.npz"), make)
 
 
 def landsat(date):
@@ -145,7 +178,7 @@ def landsat(date):
             used.append(item.id)
         return {"lst": lst, "clear": np.isfinite(lst) & (share_bad < 0.01),
                 "time": np.array(items[0].datetime.isoformat()), "item": np.array(" ".join(used))}
-    return _cached(f"landsat_{date}.npz", make)
+    return _cached(_tag(f"landsat_{date}.npz"), make)
 
 
 def _download(href, path):
@@ -179,10 +212,13 @@ def sentinel3(date, near_time):
         exc = xr.open_dataset(files["lst-in"], engine="h5netcdf", mask_and_scale=False)["exception"].values
         lat, lon = geo["latitude_in"].values, geo["longitude_in"].values
         x, y = Transformer.from_crs("EPSG:4326", CRS, always_xy=True).transform(lon, lat)
-        x0, top = tr.c, tr.f
-        near = (x > x0 - 5000) & (x < x0 + SIZE + 5000) & (y < top + 5000) & (y > top - SIZE - 5000)
+        x0, top, width, height = extent_m()
+        near = (x > x0 - 5000) & (x < x0 + width + 5000) & (y < top + 5000) & (y > top - height - 5000)
         k = lst["LST"].values
-        good = (np.isfinite(k) & (flags["cloud_in"].values == 0) & (exc == 0))[near]
+        cloud = flags["cloud_in"].values.astype("int64")
+        cold = k < np.nanmedian(k[near]) - 8
+        cloudy = ((cloud & ~1) != 0) | (((cloud & 1) != 0) & cold)      # bit 0 = the "visible" test
+        good = (np.isfinite(k) & ~cloudy & (exc == 0))[near]
         px, py, val = x[near], y[near], (k[near] - 273.15)
         cx = x0 + (np.arange(shape[1]) + 0.5) * 1000
         cy = top - (np.arange(shape[0]) + 0.5) * 1000
@@ -192,11 +228,15 @@ def sentinel3(date, near_time):
         out[~good[nearest].reshape(shape)] = np.nan
         return {"lst": out.astype("float32"), "time": np.array(item.datetime.isoformat()), "item": np.array(item.id),
                 "cloudy_share": np.array(1 - good.mean())}
-    return _cached(f"s3_{date}.npz", make)
+    return _cached(_tag(f"s3_{date}.npz"), make)
 
 
 if __name__ == "__main__":
-    for date in sys.argv[1:]:
+    args = sys.argv[1:]
+    if args[0] == "--area":
+        set_area(args[1])
+        args = args[2:]
+    for date in args:
         ls = landsat(date)
         s3 = sentinel3(date, ls["time"])
         s2 = sentinel2(date)

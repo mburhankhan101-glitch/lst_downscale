@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 cache/
 runs/*.tif
+runs/poster_*.png
+!runs/poster_*_preview.png

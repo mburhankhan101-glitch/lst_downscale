@@ -3,6 +3,11 @@ Figures for the README.
 
     python figures.py 2026-05-06                    # runs/correction_explained.png (a few minutes)
     python figures.py before-after 2022-05-27       # runs/before_after_2022-05-27.png (needs run.py first)
+    python figures.py poster lahore 2022-05-27      # A3 landscape, 300 dpi (needs run.py --area lahore first)
+
+Poster: the same four columns as before / after for a whole area with its outline (Lahore district),
+and an inset around one busy place (Data Darbar), on one locked colour scale; A3 landscape at 300 dpi
+for print, plus a small preview for the README.
 
 Before / after: Sentinel-3 as measured (1 km), the sharpened map (10 m, smooth correction), Landsat's
 measured thermal band (100 m) and the Sentinel-2 true-colour image of the same morning, over the whole
@@ -160,7 +165,88 @@ def before_after(date, fields=(74.302, 31.193), zoom_km=5):
     print(f"Saved {out} (colour scale locked to {lo:.0f}-{hi:.0f} deg C)")
 
 
+def poster(area, date, inset_km=4, dpi=300):
+    import json
+    from shapely.geometry import shape
+    from shapely.ops import transform, unary_union
+    lst_data.set_area(area)
+    a = lst_data.AREAS[area]
+    ls = lst_data.landsat(date)
+    s3 = lst_data.sentinel3(date, ls["time"])
+    s2 = lst_data.sentinel2(date)
+    with rasterio.open(os.path.join(OUT, f"{area}_lst_10m_{date}.tif")) as src:
+        after = src.read(1)
+    before = expand(s3["lst"], FACTOR)
+    landsat = expand(np.where(ls["clear"], ls["lst"], np.nan), 10)
+    rgb = (np.stack([s2["refl"][2], s2["refl"][1], s2["refl"][0]], -1).astype("float32") / 3000).clip(0, 1)
+    x0, top, width, height = lst_data.extent_m()
+    w_km, h_km = width / 1000, height / 1000
+    # the district outline in km from the area's lower-left corner
+    gj = json.load(open(os.path.join("data", "lahore_district.geojson")))
+    to_utm = Transformer.from_crs("EPSG:4326", lst_data.CRS, always_xy=True).transform
+    outline = transform(to_utm, unary_union([shape(f["geometry"]) for f in gj["features"]]))
+    polys = getattr(outline, "geoms", [outline])
+    rings = [((np.array(p.exterior.xy[0]) - x0) / 1000, (np.array(p.exterior.xy[1]) - (top - height)) / 1000)
+             for p in polys]
+    # the inset around the point of interest
+    tr, _ = lst_data.grids()[10]
+    px, py = to_utm(*a["zoom"])
+    col, row = ~tr * (px, py)
+    half = int(inset_km * 50)
+    r0, c0 = int(row) - half, int(col) - half
+    z = (slice(r0, r0 + 2 * half), slice(c0, c0 + 2 * half))
+    to_ll = Transformer.from_crs(lst_data.CRS, "EPSG:4326", always_xy=True).transform
+    iw, is_ = to_ll(*(tr * (c0, r0 + 2 * half)))
+    ie, in_ = to_ll(*(tr * (c0 + 2 * half, r0)))
+    w, south, e, north = lst_data.bbox_lonlat()
+    inside = np.isfinite(after)
+    sample = np.r_[before[::20, ::20][inside[::20, ::20]], after[::20, ::20][inside[::20, ::20]]]
+    lo, hi = np.floor(np.nanpercentile(sample, 1)), np.ceil(np.nanpercentile(sample, 99))
+    kw = dict(cmap="inferno", vmin=lo, vmax=hi, interpolation="nearest")
+    fig, ax = plt.subplots(2, 4, figsize=(16.54, 11.69), layout="constrained")       # A3 landscape
+    columns = [(before, "Before: Sentinel-3 LST (1 km), measured"),
+               (after, "After: downscaled to 10 m"),
+               (landsat, "Check: Landsat 8 LST (100 m), measured"),
+               (rgb, "Sentinel-2 true colour (10 m)")]
+    for k, (img, title) in enumerate(columns):
+        thermal = img.ndim == 2
+        small = block_mean(img, 4)[0] if thermal else img[::4, ::4]
+        ax[0, k].imshow(small, extent=(0, w_km, 0, h_km), **(kw if thermal else {}))
+        for xs, ys in rings:
+            ax[0, k].plot(xs, ys, color="cyan" if thermal else "white", lw=0.8)
+        ax[0, k].add_patch(plt.Rectangle((c0 / 100, h_km - (r0 + 2 * half) / 100), 2 * half / 100, 2 * half / 100,
+                                         fill=False, edgecolor="white", lw=1.2))
+        ax[0, k].set_title(title, fontsize=10)
+        ax[0, k].set_xlabel(f"km  ({w:.2f} to {e:.2f} E)", fontsize=7)
+        ax[0, k].set_ylabel(f"km  ({south:.2f} to {north:.2f} N)", fontsize=7)
+        im = ax[1, k].imshow(img[z], extent=(0, 2 * half / 100, 0, 2 * half / 100), **(kw if thermal else {}))
+        ax[1, k].plot(half / 100, half / 100, marker="o", ms=6, mfc="none", mec="cyan", mew=1.5)
+        ax[1, k].set_title(f"{a['zoom_name']}, {inset_km} x {inset_km} km (white box above)", fontsize=10)
+        ax[1, k].set_xlabel(f"km  ({iw:.3f} to {ie:.3f} E)", fontsize=7)
+        ax[1, k].set_ylabel(f"km  ({is_:.3f} to {in_:.3f} N)", fontsize=7)
+        for axis in (ax[0, k], ax[1, k]):
+            axis.tick_params(labelsize=7)
+        if thermal:
+            cbar_src = im
+    fig.colorbar(cbar_src, ax=ax, location="bottom", shrink=0.45, pad=0.01,
+                 label=f"land surface temperature (deg C), one {lo:.0f}-{hi:.0f} scale for all temperature panels")
+    fig.suptitle(f"Lahore in the May 2022 heatwave: land surface temperature on {date}, before and after "
+                 f"downscaling Sentinel-3 to 10 m", fontsize=15, fontweight="bold")
+    fig.text(0.5, -0.005, f"Lahore district outline (cyan/white): geoBoundaries (PBS 2017). Sentinel-3B SLSTR "
+             f"{str(s3['time'])[11:16]} UTC, Sentinel-2A {str(s2['items'][0])[20:22]}:{str(s2['items'][0])[22:24]} UTC, Landsat 8 "
+             f"{str(ls['time'])[11:16]} UTC; data from Microsoft Planetary Computer. Downscaling: random forest "
+             f"on Sentinel-2 bands, smooth residual correction. github.com/mburhankhan101-glitch/lst_downscale",
+             ha="center", va="top", fontsize=7)
+    out = os.path.join(OUT, f"poster_{area}_{date}")
+    fig.savefig(out + ".png", dpi=dpi, bbox_inches="tight")
+    fig.savefig(out + "_preview.png", dpi=70, bbox_inches="tight")
+    print(f"Saved {out}.png ({dpi} dpi) and {out}_preview.png; scale {lo:.0f}-{hi:.0f} deg C")
+
+
 def main():
+    if len(sys.argv) > 3 and sys.argv[1] == "poster":
+        poster(sys.argv[2], sys.argv[3])
+        return
     if len(sys.argv) > 2 and sys.argv[1] == "before-after":
         before_after(sys.argv[2])
         return

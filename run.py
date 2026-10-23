@@ -23,6 +23,7 @@ Nothing can check the 10 m detail itself: Landsat's thermal band is 100 m. At 10
     python run.py 2026-03-27 2026-05-06 2026-05-14 2026-06-07 2026-06-23     # writes runs/
     python run.py --figures 2026-05-06                                         # redraw a figure only
     python run.py --tag heatwave2022 2022-05-27        # separate tables: runs/results_heatwave2022.csv ...
+    python run.py --area lahore --tag lahore2022 2022-05-27      # Lahore district (see lst_data.AREAS)
 """
 import json
 import os
@@ -40,7 +41,11 @@ from sharpen import (FACTOR, block_mean, conservation_error, dms_raw, edge_ratio
                      residual_correct, tsharp)
 
 OUT = "runs"
-FIELDS = (74.302, 31.193)
+
+
+def name(stem):
+    """Output file name: the default area keeps the original names, others carry the area's name."""
+    return stem if lst_data.AREA == "south" else f"{lst_data.AREA}_{stem}"
 
 
 def scores(pred100, truth100, ok):
@@ -102,6 +107,9 @@ def figure(date, s2, ls, s3, truth, keep, write_tif=True):
     fine_c = keep.get(("B: real Sentinel-3", "DMS trees"), (None,))[0]
     rgb = np.stack([s2["refl"][2], s2["refl"][1], s2["refl"][0]], -1).astype("float32") / 3000
     lo, hi = np.nanpercentile(truth, [2, 98])
+    _, _, width, height = lst_data.extent_m()
+    w_km, h_km = width // 1000, height // 1000
+    area = lst_data.AREAS[lst_data.AREA]
     fig, ax = plt.subplots(2, 4, figsize=(19, 10), layout="constrained")
     rgb100 = np.stack([block_mean(rgb[..., k], 10)[0] for k in range(3)], -1)
     panels = [(rgb100.clip(0, 1), None, "Sentinel-2 true colour"),
@@ -110,17 +118,17 @@ def figure(date, s2, ls, s3, truth, keep, write_tif=True):
               (block_mean(fine_b, 10)[0], "inferno", "Sharpened Sentinel-3, averaged to 100 m")]
     for a, (img, cmap, title) in zip(ax.ravel()[:4], panels):
         a.imshow(img, cmap=cmap, vmin=None if cmap is None else lo, vmax=None if cmap is None else hi,
-                 extent=(0, 40, 0, 40), interpolation="nearest")
+                 extent=(0, w_km, 0, h_km), interpolation="nearest")
         a.set_title(title, fontsize=10)
         a.set_xticks([]); a.set_yticks([])
-    # zoom: 3 x 3 km around the crop_project fields at full 10 m resolution
+    # zoom: 3 x 3 km around the area's point of interest at full 10 m resolution
     from pyproj import Transformer
-    x, y = Transformer.from_crs("EPSG:4326", lst_data.CRS, always_xy=True).transform(*FIELDS)
+    x, y = Transformer.from_crs("EPSG:4326", lst_data.CRS, always_xy=True).transform(*area["zoom"])
     col, row = ~tr * (x, y)
     r0, c0 = int(row) - 150, int(col) - 150
     z = (slice(r0, r0 + 300), slice(c0, c0 + 300))
     ax[1, 0].imshow(rgb[z].clip(0, 1), interpolation="nearest")
-    ax[1, 0].set_title("crop_project fields, 3 x 3 km, true colour", fontsize=10)
+    ax[1, 0].set_title(f"{area['zoom_name']}, 3 x 3 km, true colour", fontsize=10)
     if fine_c is not None:
         ax[1, 1].imshow(fine_c[z], cmap="inferno", vmin=lo, vmax=hi, interpolation="nearest")
         ax[1, 1].set_title("10 m, constant correction\n(1 km block edges)", fontsize=10)
@@ -130,12 +138,13 @@ def figure(date, s2, ls, s3, truth, keep, write_tif=True):
         a.set_xticks([]); a.set_yticks([])
     ax[1, 3].axis("off")
     fig.colorbar(im, ax=ax, shrink=0.6, label="land surface temperature (deg C)")
-    fig.suptitle(f"South of Lahore, {date}, 40 x 40 km", fontsize=13)
-    fig.savefig(os.path.join(OUT, f"lst_{date}.png"), dpi=75)
+    place = "South of Lahore" if lst_data.AREA == "south" else lst_data.AREA.capitalize()
+    fig.suptitle(f"{place}, {date}, {w_km} x {h_km} km", fontsize=13)
+    fig.savefig(os.path.join(OUT, name(f"lst_{date}.png")), dpi=75)
     plt.close(fig)
     if not write_tif:
         return
-    with rasterio.open(os.path.join(OUT, f"lst_10m_{date}.tif"), "w", driver="GTiff", height=fine_b.shape[0],
+    with rasterio.open(os.path.join(OUT, name(f"lst_10m_{date}.tif")), "w", driver="GTiff", height=fine_b.shape[0],
                        width=fine_b.shape[1], count=1, dtype="float32", crs=lst_data.CRS, transform=tr,
                        nodata=np.nan, compress="deflate", predictor=3) as dst:
         dst.write(fine_b.astype("float32"), 1)
@@ -143,15 +152,19 @@ def figure(date, s2, ls, s3, truth, keep, write_tif=True):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    if sys.argv[1] == "--figures":                 # redraw from the saved 10 m maps, no recomputing
-        for date in sys.argv[2:]:
+    argv = sys.argv[1:]
+    if argv[0] == "--area":
+        lst_data.set_area(argv[1])
+        argv = argv[2:]
+    if argv[0] == "--figures":                     # redraw from the saved 10 m maps, no recomputing
+        for date in argv[1:]:
             ls = lst_data.landsat(date)
-            with rasterio.open(os.path.join(OUT, f"lst_10m_{date}.tif")) as src:
+            with rasterio.open(os.path.join(OUT, name(f"lst_10m_{date}.tif"))) as src:
                 fine = src.read(1)
             figure(date, lst_data.sentinel2(date), ls, lst_data.sentinel3(date, ls["time"]),
                    np.where(ls["clear"], ls["lst"], np.nan), {("B: real Sentinel-3", "DMS trees, smooth"): (fine, {})}, write_tif=False)
         return
-    args = sys.argv[1:]
+    args = argv
     tag = ""
     if args[0] == "--tag":
         tag, args = "_" + args[1], args[2:]

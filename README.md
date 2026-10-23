@@ -151,10 +151,43 @@ image. Landsat reads warmer overall, the 1.5 deg C sensor gap described above.
 
 ![Before and after downscaling, 27 May 2022](runs/before_after_2022-05-27.png)
 
+## Lahore district and Data Darbar, 27 May 2022
+
+```powershell
+python lst_data.py --area lahore 2022-05-27
+python run.py --area lahore --tag lahore2022 2022-05-27
+python figures.py poster lahore 2022-05-27          # A3 landscape, 300 dpi (kept out of git) + preview
+```
+
+The same day over the whole of Lahore district (outline from geoBoundaries: the Lahore City and Lahore
+Cantt tehsils of the 2017 census), with an inset of 4 x 4 km around Data Darbar in the old city. On
+this area Sentinel-3's "visible" cloud test flagged a quarter of central Lahore on a clear day: bright
+roofs, as hot as their neighbours. Such pixels now count as cloud only if they are also at least 8 K
+colder than the area's median, as a real cloud top would be (the other areas had almost none of them).
+
+| Lahore district, 27 May 2022 | Test A detail r | Test B detail r | Test B detail RMSE (deg C) |
+|---|---|---|---|
+| resample | 0.25 | 0.22 | 1.97 |
+| TsHARP | 0.63 | 0.63 | 1.62 |
+| DMS trees, smooth | **0.68** | **0.63** | **1.57** |
+
+([results](runs/results_lahore2022.csv), [summary](runs/summary_lahore2022.csv))
+
+- **A city is harder than farmland.** Over Lahore the trees explain 68% (Test A) and 63% (real
+  Sentinel-3) of the pattern inside each 1 km cell, against 82% and 78% on the farmland south of the
+  city the same morning, and only match TsHARP on real Sentinel-3. In a city the temperature of a
+  10 m pixel depends on roof material, shade and building height, which reflectance shows only partly.
+- The sensor gap is the same as over farmland: Sentinel-3 1.4 deg C cooler than Landsat, one minute apart.
+- Landsat shows much of the bare, harvested farmland around the city hotter than the dense old city
+  that morning; the downscaled map shows the same, with roads and open ground hottest and trees and
+  the gardens around the old city's monuments cooler.
+
+![Lahore, 27 May 2022](runs/poster_lahore_2022-05-27_preview.png)
+
 ## Limitations
 
 - The 10 m detail is inferred from Sentinel-2, not measured; it is checked only at 100 m.
-- One area, six dates (five in 2026, one in 2022), one model per scene. 14 May and 23 June had partly cloudy Sentinel-2
+- Two areas (farmland south of Lahore; Lahore district), six dates, one model per scene. 14 May and 23 June had partly cloudy Sentinel-2
   images and are scored on a quarter of the area.
 - The time and angle offset between Sentinel-3 and Landsat is reported, not corrected.
 

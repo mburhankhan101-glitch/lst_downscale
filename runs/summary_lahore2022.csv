@@ -1,0 +1,9 @@
+test,method,rmse,bias,detail_r,detail_rmse,edge_ratio,conservation_error
+A: Landsat averaged to 1 km,DMS trees,1.52,0.0,0.66,1.52,1.75,0.0
+A: Landsat averaged to 1 km,"DMS trees, smooth",1.48,0.0,0.68,1.48,1.02,0.01
+A: Landsat averaged to 1 km,TsHARP,1.96,-0.0,0.63,1.96,1.43,0.0
+A: Landsat averaged to 1 km,resample,2.0,0.0,0.25,1.95,1.02,0.33
+B: real Sentinel-3,DMS trees,2.32,-1.43,0.62,1.59,1.63,0.0
+B: real Sentinel-3,"DMS trees, smooth",2.31,-1.43,0.63,1.57,1.02,0.01
+B: real Sentinel-3,TsHARP,2.34,-1.43,0.63,1.62,1.58,0.0
+B: real Sentinel-3,resample,2.63,-1.43,0.22,1.97,1.02,0.17
