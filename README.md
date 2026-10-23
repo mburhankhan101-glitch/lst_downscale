@@ -184,6 +184,48 @@ colder than the area's median, as a real cloud top would be (the other areas had
 
 ![Lahore, 27 May 2022](runs/poster_lahore_2022-05-27_preview.png)
 
+## Does the Sentinel-2 guide have to be from the same day?
+
+```powershell
+python composites.py lahore_city        # central Lahore, 20 x 20 km around Data Darbar
+python composites.py south              # the farmland area
+python composites.py --figure
+```
+
+Sentinel-3 measures temperature every day; Sentinel-2 passes every 5 days and is often cloudy, so a
+same-day pair is rare. A composite (the median of each pixel's clear observations over several days)
+is cloud-free and clean at pixel level, but it shows the land over a period, not on the day. Is the
+time mismatch acceptable? The same Sentinel-3 image (27 May 2022) was sharpened with five Sentinel-2
+guides, all from the same orbit as 27 May (so only time changes) and never including 27 May itself.
+
+| Detail r, real Sentinel-3 (Test B) | Farmland | Central Lahore | Mean NDVI change from the day, farmland / city |
+|---|---|---|---|
+| same day | **0.78** | 0.55 | 0 / 0 |
+| one image, 5 days earlier | 0.71 | **0.62** | 0.06 / 0.05 |
+| composite, +-10 days (4 images) | 0.72 | 0.57 | 0.06 / 0.05 |
+| composite, +-30 days (12 images) | 0.71 | 0.59 | 0.08 / 0.06 |
+| composite, the month before (April, 6 images) | 0.49 | 0.36 | 0.16 / 0.11 |
+| no guide (resample) | 0.24 | 0.23 | |
+
+([farmland](runs/composites_south.csv), [city](runs/composites_lahore_city.csv))
+
+- **A guide from around the date works almost as well.** Over farmland, any guide within a few weeks
+  of the day (one image 5 days earlier, a +-10 or +-30 day composite) explains 71-72% of the pattern
+  inside each 1 km cell against 78% with the same-day image: about a tenth of the skill is lost, and
+  it is still three times better than no guide.
+- **In the city the time mismatch costs nothing.** Buildings and roads do not change in a few weeks;
+  the near-date guides did as well as the same day or slightly better (0.57-0.62 against 0.55),
+  possibly because a composite is cleaner at pixel level.
+- **An old guide does not work.** A composite of the month before lost a third of the skill over
+  farmland (0.49) and in the city (0.36). In the four weeks before 27 May, a quarter of the farmland
+  pixels changed by more than 0.2 in NDVI: harvested, ploughed or irrigated.
+- In practice: on a day without a clear Sentinel-2 image, a composite centred on the day (or the
+  nearest clear image within a week or two) gives a usable 10 m map. For a map made on the day itself
+  only past images exist; the "5 days earlier" result (0.71) is the closest to that case. One date and
+  one orbit tested so far.
+
+![Guides of different dates](runs/composites.png)
+
 ## Limitations
 
 - The 10 m detail is inferred from Sentinel-2, not measured; it is checked only at 100 m.

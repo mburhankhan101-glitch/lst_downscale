@@ -60,10 +60,10 @@ def scores(pred100, truth100, ok):
             "detail_rmse": float(np.sqrt(np.mean((dp - dt) ** 2))), "cells_100m": int(ok.sum())}
 
 
-def run_date(date):
+def run_date(date, s2=None):
     ls = lst_data.landsat(date)
     s3 = lst_data.sentinel3(date, ls["time"])
-    s2 = lst_data.sentinel2(date)
+    s2 = lst_data.sentinel2(date) if s2 is None else s2       # another guide image can be passed in
     feats = features(s2["refl"])
     clear10 = s2["clear"] & np.isfinite(feats).all(0)
     truth = np.where(ls["clear"], ls["lst"], np.nan)

@@ -45,6 +45,8 @@ AREAS = {
               "zoom": (74.302, 31.193), "zoom_name": "crop_project fields"},
     "lahore": {"lonlat": (74.007, 31.254, 74.655, 31.713),           # Lahore City + Lahore Cantt tehsils
                "zoom": (74.3047, 31.5790), "zoom_name": "Data Darbar"},
+    "lahore_city": {"centre": (74.3047, 31.5790), "size": 20_000,     # central Lahore around Data Darbar
+                    "zoom": (74.3047, 31.5790), "zoom_name": "Data Darbar"},
 }
 AREA = "south"
 
@@ -118,14 +120,18 @@ def _cached(name, make):
     return out
 
 
-def sentinel2(date):
+def sentinel2(date, exact=False, orbit=None):
     """Reflectance (10, H, W) uint16 x 10000 and a clear-sky mask on the 10 m grid, from the same
-    day (or one day either side), clearest scenes first."""
+    day (or one day either side), clearest scenes first. exact: that day only; orbit: only that
+    relative orbit (both used for composites, so no image from another day or angle slips in)."""
     def make():
         tr, shape = grids()[10]
         d = datetime.fromisoformat(date)
+        days = 0 if exact else 1
         items = list(catalog().search(collections=["sentinel-2-l2a"], bbox=bbox_lonlat(),
-                                      datetime=f"{(d - timedelta(days=1)).date()}/{(d + timedelta(days=1)).date()}").items())
+                                      datetime=f"{(d - timedelta(days=days)).date()}/{(d + timedelta(days=days)).date()}").items())
+        if orbit is not None:
+            items = [i for i in items if i.properties.get("sat:relative_orbit") == orbit]
         items.sort(key=lambda i: (abs((i.datetime.date() - d.date()).days), i.properties["eo:cloud_cover"]))
         refl = np.zeros((len(S2_BANDS),) + shape, dtype="uint16")
         scl = np.zeros(shape, dtype="uint8")
@@ -145,7 +151,40 @@ def sentinel2(date):
             scl[take] = s[take]
             used.append(item.id)
         return {"refl": refl, "clear": np.isin(scl, CLEAR_SCL), "items": np.array(used)}
-    return _cached(_tag(f"s2_{date}.npz"), make)
+    name = f"s2_{date}.npz" if not (exact or orbit) else f"s2_{date}_only_R{orbit:03d}.npz"
+    return _cached(_tag(name), make)
+
+
+def sentinel2_days(start, end, orbit, skip=()):
+    """The days with a Sentinel-2 pass on this relative orbit over the area, oldest first."""
+    items = catalog().search(collections=["sentinel-2-l2a"], bbox=bbox_lonlat(), datetime=f"{start}/{end}").items()
+    days = {str(i.datetime.date()) for i in items if i.properties.get("sat:relative_orbit") == orbit}
+    return sorted(d for d in days if d not in skip)
+
+
+def composite(days, orbit, name):
+    """Median of the clear observations of each pixel over several days (one band at a time, to keep
+    memory low); clear where at least one day was clear. Also how many clear days each pixel had."""
+    def make():
+        members = [os.path.join(CACHE, _tag(f"s2_{d}_only_R{orbit:03d}.npz")) for d in days]
+        for d in days:
+            sentinel2(d, exact=True, orbit=orbit)                     # download and cache each day
+        _, shape = grids()[10]
+        count = np.zeros(shape, dtype="uint8")
+        for m in members:
+            count += np.load(m)["clear"]
+        refl = np.zeros((len(S2_BANDS),) + shape, dtype="uint16")
+        for k in range(len(S2_BANDS)):
+            stack = np.full((len(members),) + shape, np.nan, dtype="float32")
+            for j, m in enumerate(members):
+                z = np.load(m)
+                stack[j] = np.where(z["clear"], z["refl"][k], np.nan)
+            with np.errstate(all="ignore"):
+                med = np.nanmedian(stack, axis=0)
+            refl[k] = np.nan_to_num(med, nan=0).astype("uint16")
+            del stack
+        return {"refl": refl, "clear": count > 0, "count": count, "items": np.array(days)}
+    return _cached(_tag(f"s2_composite_{name}.npz"), make)
 
 
 def landsat(date):
