@@ -1,15 +1,133 @@
 # lst_downscale
 
-Land surface temperature (LST) from Sentinel-3 is measured on 1 km pixels, too coarse to see a single
-field. This project sharpens it to 10 m with Sentinel-2 as the guide, and checks how much of the added
-detail is real against Landsat's 100 m thermal band. Study area: 40 x 40 km south of Lahore, around
-the fields of [crop_project](https://github.com/mburhankhan101-glitch/crop_project). 
+**Sharpening satellite land surface temperature from 1 km to 10 m over Lahore, and checking how much
+of the added detail is real.**
+
+Sentinel-3 measures the temperature of the ground every day, but on 1 km pixels: one pixel covers
+dozens of fields. This project sharpens it to 10 m with Sentinel-2 as the guide (what is in each 10 m
+pixel), checks the result against Landsat's own 100 m thermal measurement, and uses it on a real
+question: do crops at the tail of a canal show signs of water shortage? Study areas: farmland south
+of Lahore around the fields of [crop_project](https://github.com/mburhankhan101-glitch/crop_project),
+and Lahore district, including the May 2022 heatwave.
+
+![Lahore on 27 May 2022, before and after downscaling, checked against Landsat](runs/poster_lahore_2022-05-27_preview.png)
+
+## Key results
+
+"Detail r" is how much of the temperature pattern inside each 1 km pixel the sharpened map gets right,
+checked at 100 m against Landsat (0 = none: plain enlargement; 1 = all). Test A sharpens Landsat
+averaged to 1 km, so the truth is known; Test B sharpens real Sentinel-3.
+
+| Method | Detail r, Test A | Detail r, Test B (real Sentinel-3) | Error of the pattern, Test B |
+|---|---|---|---|
+| Enlarge the 1 km pixels (no guide) | 0.30 | 0.22 | 1.84 deg C |
+| TsHARP (one NDVI line) | 0.69 | 0.69 | 1.45 deg C |
+| **Random forest + smooth correction** | **0.78** | **0.72** | **1.32 deg C** |
+
+Mean of five spring 2026 dates over farmland. On 27 May 2022, with all three satellites within two
+minutes of each other, the random forest reached 0.82 and 0.78 over farmland, and 0.68 and 0.63 over
+Lahore district.
+
+| Guide image for 27 May 2022 (Test B, detail r) | Farmland | Central Lahore |
+|---|---|---|
+| Sentinel-2 of the same day | 0.78 | 0.55 |
+| Composite of +-30 days | 0.71 | 0.59 |
+| Composite of the month before | 0.49 | 0.36 |
+
+| Canal distributaries, head third vs tail third | Result |
+|---|---|
+| Share of land in green crop | lower at the tail on 27 of 32 distributary-dates; beyond chance in March (p = 0.04), borderline in June (0.06) |
+| Temperature of the green crops | no difference beyond chance on any date |
+
+## Main findings
+
+1. **A random forest on all Sentinel-2 bands recovers most of the detail** inside a 1 km pixel over
+   farmland (about three quarters) and cuts its error by about 30% against plain enlargement.
+2. **Moisture matters more than greenness.** The shortwave infrared band and the moisture index were the
+   model's most important inputs, not NDVI: evaporation cools, and SWIR sees water.
+3. **A city is harder than farmland** (0.63 against 0.78 on real Sentinel-3): a city pixel's temperature
+   depends on roof material, shade and building height, which reflectance shows only partly.
+4. **Sentinel-3 and Landsat disagree before any sharpening**, by +0.7 to -4.4 deg C, mostly with the time
+   between their passes, and still by about 1.5 deg C one minute apart.
+5. **A Sentinel-2 guide from around the date works almost as well as the same day**; a month-old guide
+   does not. That makes daily 10 m maps possible on most days.
+6. **Canal tails crop less, but their crops are not hotter.** One reading: where canal water falls
+   short, farmers leave land fallow, and the fields they do crop are watered, for example from
+   tubewells. Satellites show the pattern; the cause needs people on the ground.
+7. **The 10 m detail is inferred, not measured.** It is checked down to 100 m only, and the maps say so.
+
+## Contents
+
+- [Setup](#setup) · [Reproduce](#reproduce) · [Project structure](#project-structure) · [Data and credits](#data-and-credits)
+- The full story: [data](#data) · [methods](#methods-sharpenpy) · [validation](#validation-runpy) ·
+  [results, 2026](#results) · [2022 heatwave](#the-2022-heatwave-27-may-2022) ·
+  [Lahore and Data Darbar](#lahore-district-and-data-darbar-27-may-2022) ·
+  [composites](#does-the-sentinel-2-guide-have-to-be-from-the-same-day) ·
+  [canal head vs tail](#using-it-canal-head-vs-tail)
+- [Limitations](#limitations) · [Future work](#future-work) · [Licence](#licence)
+
+## Setup
+
+Python 3.14 on Windows, CPU only. No account is needed: all data comes from Microsoft Planetary
+Computer's open STAC API.
+
+```powershell
+git clone https://github.com/mburhankhan101-glitch/lst_downscale
+cd lst_downscale
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Reproduce
 
 ```powershell
 python lst_data.py 2026-03-27 2026-05-06 2026-05-14 2026-06-07 2026-06-23   # download and cache
 python run.py 2026-03-27 2026-05-06 2026-05-14 2026-06-07 2026-06-23        # sharpen and score (~30 min)
-python run.py --figures 2026-05-06                                          # redraw one figure
+python figures.py 2026-05-06                                                # constant vs smooth correction
+python find_dates.py lahore 2022-03-20 2022-05-30                           # best-synced 2022 dates
+python run.py --tag heatwave2022 2022-05-27
+python figures.py before-after 2022-05-27
+python run.py --area lahore --tag lahore2022 2022-05-27                     # Lahore district
+python figures.py poster lahore 2022-05-27                                  # A3 poster, 300 dpi
+python composites.py south                                                  # guides of other dates
+python composites.py lahore_city
+python composites.py --figure
+python canal.py                                                             # canal head vs tail (~25 min)
 ```
+
+Each section below lists its own commands. The 10 m GeoTIFFs and the 300 dpi poster are written to
+`runs/` but kept out of git (30-60 MB each).
+
+## Project structure
+
+| File | What it does |
+|---|---|
+| `lst_data.py` | Downloads and aligns Sentinel-2 (10 m), Landsat temperature (100 m) and Sentinel-3 temperature (1 km); study areas; composites |
+| `sharpen.py` | The methods: enlargement, TsHARP, the random forest sharpener, constant and smooth residual correction, edge ratio |
+| `run.py` | Sharpens, runs Tests A and B, writes result tables, figures and 10 m GeoTIFFs |
+| `figures.py` | Constant vs smooth correction, the before / after map, the A3 poster |
+| `find_dates.py` | Ranks days by how closely Sentinel-3, Sentinel-2 and Landsat passed |
+| `composites.py` | Sharpens one Sentinel-3 image with Sentinel-2 guides of other dates |
+| `canal.py` | Head vs tail of canal distributaries, with two placebo tests |
+| `data/` | Lahore district outline and canal lines |
+| `runs/` | Result tables and figures |
+
+## Data and credits
+
+- **Sentinel-3 SLSTR LST, Sentinel-2 L2A and Landsat 8/9 Collection 2** from
+  [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/). Contains modified Copernicus
+  Sentinel data (2022, 2026). Landsat data courtesy of the U.S. Geological Survey.
+- **Lahore district outline**: [geoBoundaries](https://www.geoboundaries.org/) (Pakistan ADM3, from the
+  2017 census), Open Data Commons Open Database License.
+- **Canal lines**: (c) [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, Open
+  Database License.
+- The tree sharpener follows the idea of the data mining sharpener (decision trees fitted on coarse
+  pixels, applied at fine resolution, with residual correction); the code here is written from scratch.
+
+---
+
+# The full story
 
 ## Data
 
@@ -275,17 +393,32 @@ compared with the means of as many random lines, drawn 10,000 times.
 
 ![Canal head vs tail](runs/canal/canal.png)
 
+---
+
 ## Limitations
 
-- The 10 m detail is inferred from Sentinel-2, not measured; it is checked only at 100 m.
-- Two areas (farmland south of Lahore; Lahore district), six dates, one model per scene. 14 May and 23 June had partly cloudy Sentinel-2
-  images and are scored on a quarter of the area.
-- The time and angle offset between Sentinel-3 and Landsat is reported, not corrected.
+- **The 10 m detail is inferred from Sentinel-2, not measured.** Landsat's 100 m thermal band is the
+  finest real check, so nothing below 100 m is validated.
+- **Two areas and six dates**, one model per scene. 14 May and 23 June 2026 had partly cloudy
+  Sentinel-2 images and are scored on about a quarter of the area.
+- **The Sentinel-3 to Landsat offset is reported, not corrected.**
+- **The composite test** covers one date and one Sentinel-2 orbit.
+- **The canal analysis is suggestive, not conclusive**: eight distributaries from OpenStreetMap, four
+  usable dates, no canal flow records and no information from farmers yet.
 
-## Roadmap
+## Future work
 
-- [x] Data for five same-day dates; resample, TsHARP and tree sharpener; Tests A and B
-- [x] Smooth the residual correction to remove the 1 km block edges (edge ratio 1.75 to 1.03)
-- [ ] A U-Net trained on Landsat (1 km input, 100 m answer key) and tested on unseen dates
-- [ ] Correct the Sentinel-3 to Landsat offset (pass time, viewing angle)
-- [x] Use it: head vs tail of canal distributaries (fewer green fields at the tail beyond an east-west pattern in March, borderline in June; green crops not hotter)
+Ideas this project points to, not done yet:
+
+- **A U-Net trained on Landsat** (1 km input, 100 m answer key) over many dates, tested on unseen days:
+  it sees the neighbourhood of each pixel, which may help most in the city.
+- **Correcting the Sentinel-3 to Landsat offset** (pass time, viewing angle, temperature algorithm).
+- **Daily 10 m maps** from Sentinel-3 with near-date Sentinel-2 composites.
+- **More canals and seasons**, and the question to put to tail-end farmers: do they leave land uncropped,
+  or pump groundwater instead?
+- **Field-level water use**: combining sharpened temperature with an evapotranspiration model.
+
+## Licence
+
+The code in this repository is released under the [MIT licence](LICENSE). The data it downloads or
+includes keeps the terms of its providers (see [Data and credits](#data-and-credits)).
