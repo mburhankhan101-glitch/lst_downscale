@@ -226,6 +226,55 @@ guides, all from the same orbit as 27 May (so only time changes) and never inclu
 
 ![Guides of different dates](runs/composites.png)
 
+## Using it: canal head vs tail
+
+```powershell
+python canal.py               # about 25 minutes; writes runs/canal/
+python canal.py --figure
+```
+
+In Punjab, water reaches the head of a canal distributary first; by the tail there is often less
+(seepage, theft, silt). Do the satellite maps show it? Nine distributaries and minors of at least
+15 km in the farmland area come from OpenStreetMap ((c) OpenStreetMap contributors; drawn in the
+direction of flow, checked against where each leaves its parent canal). Every pixel within 1.5 km is
+placed along its distributary from head (0) to tail (1), and the head third is compared with the tail
+third on each date with a clear Sentinel-2 image:
+
+- **green share**: the share of land in green crop (NDVI 0.4 or more);
+- **green-crop temperature**: how much hotter a green field is than green fields within 5 km, which
+  removes the regional gradient. Measured with Landsat's own 100 m temperature, and again with the
+  downscaled 10 m map; both agree.
+
+Two placebos, each 300 random straight lines of the same lengths scored the same way: pointing in any
+direction, and pointing the same way as the real distributaries (most flow from east to west here, so
+this one also removes a plain east-west difference across the area). The real distributaries' mean is
+compared with the means of as many random lines, drawn 10,000 times.
+
+| Date | Green share, head third | Green share, tail third | p vs same-direction lines | Green crops, tail minus head (deg C) | p |
+|---|---|---|---|---|---|
+| 27 Mar 2026 (wheat) | 0.75 | 0.60 | **0.04** | -0.03 | 0.61 |
+| 6 May 2026 (harvest) | 0.43 | 0.37 | 0.42 | -0.02 | 0.53 |
+| 7 Jun 2026 (sowing) | 0.40 | 0.29 | 0.06 | -0.24 | 0.41 |
+| 27 May 2022 (heatwave) | 0.37 | 0.28 | 0.12 | -0.12 | 0.72 |
+
+([by date](runs/canal/canal_by_date.csv), [tests](runs/canal/canal_tests.csv),
+[each distributary](runs/canal/canal_summary.csv), [the lines](runs/canal/distributaries.csv))
+
+- **Tails have fewer green fields.** On 27 of 32 distributary-dates the tail third was less green than
+  the head third, by 5 to 13 percentage points on average. Against lines pointing the same way this is
+  beyond chance in March (p = 0.04), borderline in June (0.06), and not clear in the 2022 heatwave
+  (0.12) or at harvest in May, when most fields are bare anyway. Suggestive, not conclusive: one area,
+  eight lines, four dates.
+- **The green crops at the tail are not hotter.** No date shows tail crops running warmer than head
+  crops beyond chance, with either temperature map. Single distributaries do (Chhina was hotter at the
+  tail on every date, up to 1.45 deg C on 27 May 2022), but others are cooler at the tail, and the
+  random lines spread just as widely.
+- One reading that fits both: where canal water falls short, the effect shows as **less land cropped**
+  rather than as thirsty crops, because the fields that are cropped at the tail are watered, for example
+  from tubewells. A satellite cannot tell which; tail-end farmers can.
+
+![Canal head vs tail](runs/canal/canal.png)
+
 ## Limitations
 
 - The 10 m detail is inferred from Sentinel-2, not measured; it is checked only at 100 m.
@@ -239,4 +288,4 @@ guides, all from the same orbit as 27 May (so only time changes) and never inclu
 - [x] Smooth the residual correction to remove the 1 km block edges (edge ratio 1.75 to 1.03)
 - [ ] A U-Net trained on Landsat (1 km input, 100 m answer key) and tested on unseen dates
 - [ ] Correct the Sentinel-3 to Landsat offset (pass time, viewing angle)
-- [ ] Use it: crop temperature at the head and tail of a canal, as evidence of water shortage
+- [x] Use it: head vs tail of canal distributaries (fewer green fields at the tail beyond an east-west pattern in March, borderline in June; green crops not hotter)

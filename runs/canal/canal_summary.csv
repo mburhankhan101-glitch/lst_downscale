@@ -1,0 +1,109 @@
+date,temperature,distributary,km,tail_minus_head_C,green_share_head,green_share_tail,placebo_5pct,placebo_95pct,beyond_placebo,green_change,green_placebo_5pct,green_placebo_95pct,green_beyond_placebo
+2026-03-27,downscaled 10 m,Athilpur Minor,20.5,-0.175,0.72,0.754,-0.297,0.264,False,0.034,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Bedian Distributary,57.9,-0.085,0.777,0.677,-0.297,0.264,False,-0.1,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Chhina Distributory,25.5,0.184,0.756,0.614,-0.297,0.264,False,-0.142,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Kasur Minor,15.9,-0.138,0.805,0.612,-0.297,0.264,False,-0.193,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Niaz Beg Distributary,36.6,,,0.445,-0.297,0.264,False,,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Raiwind Distributary,28.5,0.118,0.809,0.651,-0.297,0.264,False,-0.158,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Shorkot Distributary,24.2,0.215,0.631,0.412,-0.297,0.264,False,-0.219,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Thammam Distributary,30.4,0.004,0.849,0.728,-0.297,0.264,False,-0.121,-0.269,0.282,False
+2026-03-27,downscaled 10 m,Todepur Minor,16.4,-0.04,0.666,0.506,-0.297,0.264,False,-0.159,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Athilpur Minor,20.5,-0.326,0.72,0.754,-0.459,0.447,False,0.034,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Bedian Distributary,57.9,0.019,0.777,0.677,-0.459,0.447,False,-0.1,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Chhina Distributory,25.5,0.134,0.756,0.614,-0.459,0.447,False,-0.142,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Kasur Minor,15.9,-0.496,0.805,0.612,-0.459,0.447,True,-0.193,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Niaz Beg Distributary,36.6,,,0.445,-0.459,0.447,False,,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Raiwind Distributary,28.5,0.15,0.809,0.651,-0.459,0.447,False,-0.158,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Shorkot Distributary,24.2,-0.002,0.631,0.412,-0.459,0.447,False,-0.219,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Thammam Distributary,30.4,0.103,0.849,0.728,-0.459,0.447,False,-0.121,-0.269,0.282,False
+2026-03-27,Landsat 100 m,Todepur Minor,16.4,0.173,0.666,0.506,-0.459,0.447,False,-0.159,-0.269,0.282,False
+2026-05-06,downscaled 10 m,Athilpur Minor,20.5,0.119,0.423,0.339,-0.422,0.398,False,-0.083,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Bedian Distributary,57.9,0.212,0.356,0.347,-0.422,0.398,False,-0.01,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Chhina Distributory,25.5,0.669,0.412,0.248,-0.422,0.398,True,-0.164,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Kasur Minor,15.9,-0.132,0.348,0.401,-0.422,0.398,False,0.053,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Niaz Beg Distributary,36.6,,,0.277,-0.422,0.398,False,,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Raiwind Distributary,28.5,0.203,0.257,0.362,-0.422,0.398,False,0.105,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Shorkot Distributary,24.2,0.185,0.572,0.261,-0.422,0.398,False,-0.312,-0.238,0.303,True
+2026-05-06,downscaled 10 m,Thammam Distributary,30.4,-0.031,0.264,0.297,-0.422,0.398,False,0.032,-0.238,0.303,False
+2026-05-06,downscaled 10 m,Todepur Minor,16.4,-0.298,0.791,0.788,-0.422,0.398,False,-0.003,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Athilpur Minor,20.5,0.222,0.423,0.339,-0.523,0.578,False,-0.083,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Bedian Distributary,57.9,0.627,0.356,0.347,-0.523,0.578,True,-0.01,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Chhina Distributory,25.5,0.752,0.412,0.248,-0.523,0.578,True,-0.164,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Kasur Minor,15.9,-0.941,0.348,0.401,-0.523,0.578,True,0.053,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Niaz Beg Distributary,36.6,,,0.277,-0.523,0.578,False,,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Raiwind Distributary,28.5,0.181,0.257,0.362,-0.523,0.578,False,0.105,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Shorkot Distributary,24.2,-0.376,0.572,0.261,-0.523,0.578,False,-0.312,-0.238,0.303,True
+2026-05-06,Landsat 100 m,Thammam Distributary,30.4,-0.128,0.264,0.297,-0.523,0.578,False,0.032,-0.238,0.303,False
+2026-05-06,Landsat 100 m,Todepur Minor,16.4,-0.476,0.791,0.788,-0.523,0.578,False,-0.003,-0.238,0.303,False
+2026-05-14,downscaled 10 m,Athilpur Minor,20.5,,,,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Bedian Distributary,57.9,,,0.346,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Chhina Distributory,25.5,,,0.249,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Kasur Minor,15.9,,,,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Niaz Beg Distributary,36.6,,,0.27,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Raiwind Distributary,28.5,,,,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Shorkot Distributary,24.2,,,0.249,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Thammam Distributary,30.4,,,,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,downscaled 10 m,Todepur Minor,16.4,,,,-0.771,0.827,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Athilpur Minor,20.5,,,,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Bedian Distributary,57.9,,,0.346,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Chhina Distributory,25.5,,,0.249,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Kasur Minor,15.9,,,,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Niaz Beg Distributary,36.6,,,0.27,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Raiwind Distributary,28.5,,,,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Shorkot Distributary,24.2,,,0.249,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Thammam Distributary,30.4,,,,-1.587,1.394,False,,-0.154,0.155,False
+2026-05-14,Landsat 100 m,Todepur Minor,16.4,,,,-1.587,1.394,False,,-0.154,0.155,False
+2026-06-07,downscaled 10 m,Athilpur Minor,20.5,0.012,0.445,0.352,-0.541,0.593,False,-0.094,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Bedian Distributary,57.9,0.371,0.392,0.32,-0.541,0.593,False,-0.072,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Chhina Distributory,25.5,0.98,0.363,0.211,-0.541,0.593,True,-0.152,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Kasur Minor,15.9,-1.0,0.395,0.33,-0.541,0.593,True,-0.065,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Niaz Beg Distributary,36.6,,,0.213,-0.541,0.593,False,,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Raiwind Distributary,28.5,0.03,0.345,0.334,-0.541,0.593,False,-0.011,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Shorkot Distributary,24.2,0.396,0.32,0.158,-0.541,0.593,False,-0.163,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Thammam Distributary,30.4,-0.156,0.312,0.278,-0.541,0.593,False,-0.034,-0.17,0.184,False
+2026-06-07,downscaled 10 m,Todepur Minor,16.4,-0.451,0.596,0.385,-0.541,0.593,False,-0.212,-0.17,0.184,True
+2026-06-07,Landsat 100 m,Athilpur Minor,20.5,-0.191,0.445,0.352,-0.863,1.002,False,-0.094,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Bedian Distributary,57.9,0.57,0.392,0.32,-0.863,1.002,False,-0.072,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Chhina Distributory,25.5,0.896,0.363,0.211,-0.863,1.002,False,-0.152,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Kasur Minor,15.9,-1.563,0.395,0.33,-0.863,1.002,True,-0.065,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Niaz Beg Distributary,36.6,,,0.213,-0.863,1.002,False,,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Raiwind Distributary,28.5,0.247,0.345,0.334,-0.863,1.002,False,-0.011,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Shorkot Distributary,24.2,-0.458,0.32,0.158,-0.863,1.002,False,-0.163,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Thammam Distributary,30.4,-0.676,0.312,0.278,-0.863,1.002,False,-0.034,-0.17,0.184,False
+2026-06-07,Landsat 100 m,Todepur Minor,16.4,-0.749,0.596,0.385,-0.863,1.002,False,-0.212,-0.17,0.184,True
+2026-06-23,downscaled 10 m,Athilpur Minor,20.5,,,,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Bedian Distributary,57.9,,,0.409,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Chhina Distributory,25.5,,,0.244,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Kasur Minor,15.9,,,,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Niaz Beg Distributary,36.6,,,0.175,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Raiwind Distributary,28.5,,,0.11,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Shorkot Distributary,24.2,,,0.134,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Thammam Distributary,30.4,,,,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,downscaled 10 m,Todepur Minor,16.4,,,,-0.652,0.682,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Athilpur Minor,20.5,,,,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Bedian Distributary,57.9,,,0.409,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Chhina Distributory,25.5,,,0.244,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Kasur Minor,15.9,,,,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Niaz Beg Distributary,36.6,,,0.175,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Raiwind Distributary,28.5,,,0.11,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Shorkot Distributary,24.2,,,0.134,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Thammam Distributary,30.4,,,,-0.853,1.181,False,,-0.313,0.33,False
+2026-06-23,Landsat 100 m,Todepur Minor,16.4,,,,-0.853,1.181,False,,-0.313,0.33,False
+2022-05-27,downscaled 10 m,Athilpur Minor,20.5,0.171,0.339,0.278,-0.498,0.561,False,-0.061,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Bedian Distributary,57.9,0.074,0.351,0.288,-0.498,0.561,False,-0.063,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Chhina Distributory,25.5,1.065,0.329,0.192,-0.498,0.561,True,-0.138,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Kasur Minor,15.9,-0.64,0.294,0.301,-0.498,0.561,True,0.007,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Niaz Beg Distributary,36.6,,,0.207,-0.498,0.561,False,,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Raiwind Distributary,28.5,0.545,0.316,0.247,-0.498,0.561,False,-0.069,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Shorkot Distributary,24.2,-0.508,0.416,0.199,-0.498,0.561,True,-0.217,-0.176,0.215,True
+2022-05-27,downscaled 10 m,Thammam Distributary,30.4,-0.564,0.243,0.223,-0.498,0.561,True,-0.02,-0.176,0.215,False
+2022-05-27,downscaled 10 m,Todepur Minor,16.4,-0.828,0.654,0.588,-0.498,0.561,True,-0.065,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Athilpur Minor,20.5,0.008,0.339,0.278,-0.838,1.015,False,-0.061,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Bedian Distributary,57.9,0.549,0.351,0.288,-0.838,1.015,False,-0.063,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Chhina Distributory,25.5,1.45,0.329,0.192,-0.838,1.015,True,-0.138,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Kasur Minor,15.9,-0.752,0.294,0.301,-0.838,1.015,False,0.007,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Niaz Beg Distributary,36.6,,,0.207,-0.838,1.015,False,,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Raiwind Distributary,28.5,0.777,0.316,0.247,-0.838,1.015,False,-0.069,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Shorkot Distributary,24.2,-0.855,0.416,0.199,-0.838,1.015,True,-0.217,-0.176,0.215,True
+2022-05-27,Landsat 100 m,Thammam Distributary,30.4,-0.909,0.243,0.223,-0.838,1.015,True,-0.02,-0.176,0.215,False
+2022-05-27,Landsat 100 m,Todepur Minor,16.4,-1.243,0.654,0.588,-0.838,1.015,True,-0.065,-0.176,0.215,False
